@@ -1,0 +1,222 @@
+<head>
+    <meta charset="utf-8">
+    <title>Input text with D3</title> 
+
+    <style>
+        body {
+            font-family: monospace; 
+            line-height: 160%; 
+            font-size: 18px; 
+        }
+        
+        ul {
+            list-style: 
+            none; margin: 
+            0; padding: 0;
+        }
+        
+        li {
+            display: inline-block; 
+            min-width: 80px; 
+            padding: 10px; 
+            background-color: #eee; 
+            margin: 0;
+        }
+        
+        input {
+            border: 1px dotted #ccc; 
+            background: white; 
+            font-family: monospace; 
+            padding: 10px 20px; 
+            font-size: 18px; 
+            margin: 20px 10px 20px 0; 
+            color: red;
+        }
+        
+        input:focus { 
+            background-color:yellow; 
+            outline: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <form name="myform" onSubmit="return updateTextById('pText')">
+        <input name="Submit"  type="submit" value="Update P:" >
+        <input type="text" id="pTextInput" placeholder="Enter a value for P ">
+    </form>
+
+    <form name="myform" onSubmit="return updateTextById('iText')">
+        <input name="Submit"  type="submit" value="Update I:" >
+        <input type="text" id="iTextInput" placeholder="Enter a value for I">
+    </form>
+
+    <form name="myform" onSubmit="return updateTextById('dText')">
+        <input name="Submit"  type="submit" value="Update D:" >
+        <input type="text" id="dTextInput" placeholder="Enter a value for D">
+    </form>
+
+    <ul></ul>
+
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script>
+
+        let dataset = [],
+            xpos = 2,
+            ypos = 60,
+            loc = [xpos,ypos],
+            WORKSPACE_LENGTH = 30,
+            WORKSPACE_LENGTH_OFFSET = 75,
+            WORKSPACE_HEIGHT = 70,
+            pInitial = 8,
+            iInitial = 9,
+            dInitial = 10,
+            Torque = 20;
+
+
+        let margin = {top: 20, right: 15, bottom: 60, left: 60}
+          , width = 960 - margin.left - margin.right
+          , height = 500 - margin.top - margin.bottom;
+        
+        let x = d3.scale.linear()
+                  .domain([0, WORKSPACE_LENGTH])
+                  .range([ 0, 500 ]);
+        
+        let y = d3.scale.linear()
+                  .domain([0, WORKSPACE_HEIGHT])
+                  .range([ height, 0 ]);
+     
+        let chart = d3.select('body')
+        .append('svg:svg')
+        .attr('width', width + margin.right + margin.left)
+        .attr('height', height + margin.top + margin.bottom)
+        .attr('class', 'chart')
+
+        
+        let main = chart.append('g')
+        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('class', 'main')   
+            
+        // draw the x axis
+        let xAxis = d3.svg.axis()
+        .scale(x)
+        .orient('bottom');
+
+        main.append('g')
+        .attr('transform', 'translate(0,' + height + ')')
+        .attr('class', 'main axis date')
+        .call(xAxis);
+
+        // draw the y axis
+        let yAxis = d3.svg.axis()
+        .scale(y)
+        .orient('left');
+
+        main.append('g')
+        .attr('transform', 'translate(0,0)')
+        .attr('class', 'main axis date')
+        .call(yAxis);
+
+        let g = main.append("svg:g"); 
+        //Plot Point
+        g.selectAll("scatter-dots")
+          .data(loc)
+          .enter().append("svg:circle")
+              .attr("cx", x(xpos) )
+              .attr("cy", y(ypos) )
+              .attr("r", 4)
+              .attr("fill", "red");
+
+        //Plot Location
+        g.append("text")
+            .attr("x",x(xpos+.5))
+            .attr("y",y(ypos))
+            .text(loc);
+
+        //Parameter Labels
+        g.append("text")
+            .attr("id", "pText")
+            .attr("x", x(WORKSPACE_LENGTH) + WORKSPACE_LENGTH_OFFSET)
+            .attr("y", 0)
+            .attr("fill", "green")
+            .attr("font-size", "15px")
+            .text("P = " + pInitial);
+        
+        g.append("text")
+            .attr("id", "iText")
+            .attr("x", x(WORKSPACE_LENGTH) + WORKSPACE_LENGTH_OFFSET)
+            .attr("y", 20)
+            .attr("fill", "green")
+            .attr("font-size", "15px")
+            .text("I = " + iInitial);
+
+        g.append("text")
+            .attr("id", "dText")
+            .attr("x", x(WORKSPACE_LENGTH) + WORKSPACE_LENGTH_OFFSET)
+            .attr("y", 40)
+            .attr("fill", "green")
+            .attr("font-size", "15px")
+            .text("D = " + dInitial);
+
+        // g.append("text")
+        //     .attr("id", "tText")
+        //     .attr("x", x(WORKSPACE_LENGTH) + WORKSPACE_LENGTH_OFFSET)
+        //     .attr("y",60)
+        //     .attr("fill", "green")
+        //     .attr("font-size","15px")
+        //     .text("Torque = " +T);
+
+
+        /* PID update functions */
+
+        function updateTextById (id) { 
+            // get new value
+            let value = document.getElementById(id + "Input").value;
+
+            // Redraw output text
+            draw(id, value);
+            return false;
+        }
+
+        function draw (id, val) {
+
+            // id reference to remove
+            let idRef = "#" + id,
+                idLoc,
+                idLabel;
+
+            switch (id) {
+                case "pText":
+                    idLoc = 0;
+                    idLabel = "P"
+                    break;
+
+                case "iText":
+                    idLoc = 20;
+                    idLabel = "I";
+                    break;
+                case "dText":
+                    idLoc = 40;
+                    idLabel = "D"
+                    break; 
+                default:
+                    console.log("error: unknown id");
+                    break;
+            }
+
+            //redraw output
+            d3.select(idRef).remove();
+            g.append("text")
+            .attr("id", id)
+            .attr("x", x(WORKSPACE_LENGTH) + WORKSPACE_LENGTH_OFFSET)
+            .attr("y", idLoc)
+            .attr("fill", "green")
+            .attr("font-size", "15px")
+            .text(idLabel + " = " + val);
+        }
+
+    </script>
+</body>
